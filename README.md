@@ -2,8 +2,8 @@
 
 ## Welcome to use MEBOCOST: <I>Me</I>ta<I>bo</I>lic Cell-Cell <I>Co</I>mmunication Modeling by <I>S</I>ingle Cell <I>T</I>ranscriptome
 
-```html
-<span style='color: red'> Join our email group for conveninent discussions and receive timely updates: https://forms.cloud.microsoft/r/TK7TuEU4TU </span>
+```diff
+- Join our email group for conveninent discussions and receive timely updates: https://forms.cloud.microsoft/r/TK7TuEU4TU 
 ```
 
 ### Our manuscript has been online at <a href='https://doi.org/10.1093/nar/gkaf569' target='_blank'>Nucleic Acids Research </a>
