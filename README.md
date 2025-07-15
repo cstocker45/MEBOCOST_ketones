@@ -1,7 +1,9 @@
 <img src="./images/mebocost_logo.png" width="200" height="180" style="margin-left: auto; margin-right: auto;display: block;"/></img>
 
 ## Welcome to use MEBOCOST: <I>Me</I>ta<I>bo</I>lic Cell-Cell <I>Co</I>mmunication Modeling by <I>S</I>ingle Cell <I>T</I>ranscriptome
-## <span color='red'> Join our email group for conveninent discussions and receive timely updates: https://forms.cloud.microsoft/r/TK7TuEU4TU </span>
+
+<span color='red'> Join our email group for conveninent discussions and receive timely updates: https://forms.cloud.microsoft/r/TK7TuEU4TU </span>
+
 ### Our manuscript has been online at <a href='https://doi.org/10.1093/nar/gkaf569' target='_blank'>Nucleic Acids Research </a>
 
 ### What is MEBOCOST and how does it work?
