@@ -297,6 +297,363 @@ def _commu_dotmap_(comm_res,
     if return_fig:
         return(fig)
 
+def CompScatterPlot(comm_res, 
+                    cond1, 
+                    cond2,
+                    pval_method = 'permutation_test_fdr',
+                    pval_threshold = 0.05,
+                    Log2FC_threshold = 0,
+                    figsize = (5.5, 4),
+                    show_plot = False,
+                    title = '',
+                    return_fig = False,
+                    save = False
+                   ):
+        """
+        generate a scatter plot to show the difference
+        """
+        plot_df = comm_res.copy()
+        plot_df['sig'] = (plot_df[pval_method] < pval_threshold)
+        cols = []
+        for lfc, sig in plot_df[['Log2FC', 'sig']].values.tolist():
+            if lfc < -Log2FC_threshold and sig == True:
+                cols.append('#1E90FF')
+            elif lfc > Log2FC_threshold and sig == True:
+                cols.append('#FF4040')
+            else:
+                cols.append('lightgrey')
+        sizes = []
+        for lfc in plot_df['Log2FC'].abs().tolist():
+            if lfc > 1:
+                sizes.append(50)
+            elif lfc > 0.58:
+                sizes.append(30)
+            else:
+                sizes.append(5)
+        plot_df['cols'] = cols
+        plot_df['sizes'] = sizes
+        
+        sig_df = plot_df.query('sig == True')
+        nonsig_df = plot_df.query('sig != True')
+        
+        fig, ax = plt.subplots(figsize = figsize)
+        ax.scatter(x = nonsig_df['Commu_Score_'+cond1], y = nonsig_df['Commu_Score_'+cond2],
+                  s = nonsig_df['sizes'], edgecolor = 'none',
+                  c = nonsig_df['cols'], alpha = .8)
+        
+        ax.scatter(x = sig_df['Commu_Score_'+cond1], y = sig_df['Commu_Score_'+cond2],
+                  s = sig_df['sizes'], edgecolor = 'none',
+                  c = sig_df['cols'], alpha = .6)
+        xmin, xmax = plot_df['Commu_Score_'+cond1].min(), plot_df['Commu_Score_'+cond1].max()
+        ymin, ymax = plot_df['Commu_Score_'+cond2].min(), plot_df['Commu_Score_'+cond2].max()
+        plt.plot([xmin, xmax], [xmin, xmax], color='black', linestyle = 'dashed', linewidth = .5) 
+        ax.set(xlabel = cond1, ylabel = cond2, title = title)
+        colmap = {'Up': '#FF4040', 'NS': 'lightgrey', 'Down': '#1E90FF'}
+        patches = [plt.Line2D([], [], marker = 'o', mec=None, label = key, color = colmap[key], lw=0) for key in colmap]
+        legend1 = ax.legend(handles=patches, bbox_to_anchor=(0.95, 0.8), loc='center left', title = 'Signif.', frameon=False)
+        
+        ax.add_artist(legend1)
+        
+        size_dict = {1:50, 0.58:30, 0:5}
+        patches = [plt.Line2D([], [], marker = 'o', mec=None, label = '> '+str(key),
+                              color = 'grey', lw=0, markersize = size_dict[key]/10) for key in size_dict]
+        legend2 = ax.legend(handles=patches, bbox_to_anchor=(0.95, 0.45), loc='center left', title = '|log2FC|', frameon=False)
+        
+        plt.tight_layout()
+        plt.show() if show_plot else None
+        if save is not None and save is not False and isinstance(save, str):
+            Pdf = PdfPages(save)
+            Pdf.savefig(fig)
+            Pdf.close()
+        if return_fig:
+            return(fig)
+        return 
+
+    
+def _DiffFlowPlot_(comm_res, 
+                pval_method='permutation_test_fdr',
+                pval_cutoff=0.05,
+                Log2FC_threshold = 0,
+                sender_focus = [],
+                metabolite_focus = [],
+                sensor_focus = [],
+                receiver_focus = [],
+                remove_unrelevant = False,
+                and_or = 'and',
+                node_label_size = 8,
+                node_alpha = .8,
+                figsize = 'auto',
+                node_cmap = 'Set1',
+                line_color_col = 'Log2FC',
+                line_cmap = 'spring_r',
+                line_cmap_vmin = None,
+                line_cmap_vmax = None,
+                line_cmap_center = None,
+                linewidth = 2,
+                node_size_norm = (10, 150),
+                node_value_range = None,
+                pdf=None, 
+                save_plot = True, 
+                show_plot = False,
+                text_outline = False,
+                return_fig = False):
+    """
+    plot the flux plot to connect sender - metabolite - sensor - receiver
+    ------------
+    commu_res: a data frame containing all the communication events
+    pval_method: a string, default using permutation_test_fdr, but ttest_pval was also supported 
+    cutoff: the p value cutoff, the default will be 0.05
+    node_label_size: the font size to label the node
+    node_alpha: transpency for the node dots
+    figsize: the figsize in tuple format
+    node_cmap: color map used to draw node
+    line_cmap: color map used to distinguish communication significance in line color
+    line_cmap_vmin and line_vmax: set the colormap scale for line color, default both None
+    node_size_norm: node size tells the connection numbers, can be set to normalize into a range
+    linewidth_norm: linewidth to show the 
+    prefix: a string, specefy where to save the figure, default the current directory
+    """
+    ## clean
+    plt.close()
+    
+    info('plot flow plot to show the communications from Sender -> Metabolite -> Sensor -> Receiver')
+    Sender_col = 'Sender'
+    Receiver_col = 'Receiver'
+    metabolite_col = 'Metabolite_Name'
+    sensor_col = 'Sensor'
+
+    ## get matrix
+    ptmp = comm_res.loc[(comm_res[pval_method] < pval_cutoff) & (comm_res['Log2FC'].abs() > Log2FC_threshold),]
+    
+    ## if want to focus on showing some communications
+    focus_plot = ptmp.copy()
+    if and_or == 'and':
+        if sender_focus:
+            focus_plot = focus_plot[(focus_plot[Sender_col].isin(sender_focus))]
+        if receiver_focus:
+            focus_plot = focus_plot[(focus_plot[Receiver_col].isin(receiver_focus))]
+        if metabolite_focus:
+            focus_plot = focus_plot[(focus_plot[metabolite_col].isin(metabolite_focus))]
+        if sensor_focus:
+            focus_plot = focus_plot[(focus_plot[sensor_col].isin(sensor_focus))]
+    else:
+        if sender_focus or receiver_focus or metabolite_focus or sensor_focus:
+            focus_plot = focus_plot[(focus_plot[Sender_col].isin(sender_focus)) |
+                                     (focus_plot[Receiver_col].isin(receiver_focus)) |
+                                     (focus_plot[metabolite_col].isin(metabolite_focus)) |
+                                     (focus_plot[sensor_col].isin(sensor_focus))]
+    
+    if remove_unrelevant:
+        ptmp = focus_plot.copy()
+    if ptmp.shape[0] == 0:
+        info('No mCCC identified based on your filtering')
+        return
+
+    ## get count to define dot size
+    sender_count = dict(collections.Counter(ptmp['Sender']))
+    receiver_count = dict(collections.Counter(ptmp['Receiver']))
+    metabolite_count = dict(collections.Counter(ptmp['Metabolite_Name']))
+    sensor_count = dict(collections.Counter(ptmp['Sensor']))
+    ## all count to set dot size scale
+    all_count = list(sender_count.values())+list(receiver_count.values())+list(metabolite_count.values())+list(sensor_count.values())
+    # sender, receiver, uniquely
+    senders = sorted(ptmp['Sender'].unique().tolist())
+    receivers = sorted(ptmp['Receiver'].unique().tolist())
+    metabolites = sorted(ptmp['Metabolite_Name'].unique().tolist())
+    sensors = sorted(ptmp['Sensor'].unique().tolist())
+    ## y maximum
+    max_y = max([len(senders), len(receivers), len(metabolites), len(sensors)])
+    senders_inti = int(abs(max_y-len(senders))/2) if abs(max_y-len(senders)) != 0 else 0
+    receivers_inti = int(abs(max_y-len(receivers))/2) if abs(max_y-len(receivers)) != 0 else 0
+    metabolites_inti = int(abs(max_y-len(metabolites))/2) if abs(max_y-len(metabolites)) != 0 else 0
+    sensors_inti = int(abs(max_y-len(sensors))/2) if abs(max_y-len(sensors)) != 0 else 0
+
+    # node size shows the connection number
+    if type(node_value_range) is type(()) and len(node_value_range) == 2:
+        dot_min, dot_max = node_value_range
+        ## legend for dot size
+        dot_ann = sorted(list(set([dot_min, int(np.median(range(dot_min, dot_max))), dot_max])))
+        if dot_min > dot_max:
+            info('Warnings: the node_value_range should be a typle (smaller value, larger value)')
+    else:
+        dot_min, dot_max = min(all_count), max(all_count)
+            ## node size
+        dot_ann = sorted(list(set([min(all_count), int(np.median(all_count)), max(all_count)])))
+
+    node_size_norm_fun = lambda x: node_size_norm[0]+((x-dot_min) / (dot_max - dot_min) * (node_size_norm[1]-node_size_norm[0])) if dot_max != dot_min else node_size_norm[0]+((x-dot_min) / dot_max * (node_size_norm[1]-node_size_norm[0])) 
+
+    # figsize
+    if figsize == 'auto' or not figsize:
+        figsize = (10, 5+max_y*0.07)
+    # build up figure layout
+    fig = plt.figure(constrained_layout=True, figsize=figsize)
+    subfigs = fig.add_gridspec(3, 4, height_ratios=[5, 1, 0.1],
+                              hspace = 0, wspace = 0)
+    main = fig.add_subplot(subfigs[0, :])
+    bottom_left = fig.add_subplot(subfigs[1, 0])
+    bottom_leftb = fig.add_subplot(subfigs[2, 0])
+    mid = fig.add_subplot(subfigs[1:2, 1])
+    bottom_mid = fig.add_subplot(subfigs[1:2, 2])
+    bottom_right = fig.add_subplot(subfigs[1:2, 3])
+    ## hiden axis
+    main.axis('off')
+    bottom_left.axis('off')
+    mid.axis('off')
+    bottom_leftb.axis('off')
+    bottom_mid.axis('off')
+    bottom_right.axis('off')
+    
+    ## node color
+    if type(node_cmap) == type(list()) and len(node_cmap) == 4:
+        sc, mc, ssc, rrc = node_cmap
+    else:
+        sc, mc, ssc, rrc = plt.cm.get_cmap(node_cmap)(1), plt.cm.get_cmap(node_cmap)(2), plt.cm.get_cmap(node_cmap)(3), plt.cm.get_cmap(node_cmap)(4)
+    
+    def _loc_(i, r, a):
+        if a == 1:
+            return([i])
+        l = [i]
+        for x in range(1, a):
+            i += r
+            l.append(i)
+        return(l)
+
+    ## draw dot for sender
+    m_to_sender_ratio = int(.5*len(metabolites)/len(senders))
+    m_to_sender_ratio = 1 if m_to_sender_ratio < 1 else m_to_sender_ratio
+    
+    sender_loc = _loc_(senders_inti, m_to_sender_ratio, len(senders))
+    main.scatter([0]*len(senders),
+                 sender_loc,
+#                  range(senders_inti, senders_inti+len(senders)),
+              s = [node_size_norm_fun(sender_count[x]) for x in senders], alpha = node_alpha,
+              facecolor = sc, edgecolor = 'none')
+    ## label sender
+    for s in senders:
+        txt = main.text(0, sender_loc[senders.index(s)], s, fontsize = node_label_size, ha = 'center', zorder = 2)
+        if text_outline:
+            txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+
+
+    ## draw dot for metabolite
+    main.scatter([1]*len(metabolites), range(metabolites_inti, metabolites_inti+len(metabolites)),
+              s = [node_size_norm_fun(metabolite_count[x]) for x in metabolites], alpha = node_alpha,
+              facecolor = mc, edgecolor = 'none')
+    ## label metabolite
+    for m in metabolites:
+        txt = main.text(1, metabolites_inti+metabolites.index(m), m, fontsize = node_label_size, ha = 'center', zorder = 2)
+        if text_outline:
+            txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+
+    ## draw dot for sensor
+    main.scatter([2]*len(sensors), range(sensors_inti, sensors_inti+len(sensors)),
+              s = [node_size_norm_fun(sensor_count[x]) for x in sensors], alpha = node_alpha,
+              facecolor = ssc, edgecolor = 'none')
+    ## label sensor
+    for t in sensors:
+        txt = main.text(2, sensors_inti+sensors.index(t), t, fontsize = node_label_size, ha = 'center', zorder = 2)
+        if text_outline:
+            txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+
+    ## draw dot for receiver
+    s_to_receiver_ratio = int(.5*len(sensors)/len(receivers))
+    s_to_receiver_ratio = 1 if s_to_receiver_ratio < 1 else s_to_receiver_ratio
+    receiver_loc = _loc_(receivers_inti, s_to_receiver_ratio, len(receivers))
+    main.scatter([3]*len(receivers), 
+                 receiver_loc,
+#                  range(receivers_inti, receivers_inti+len(receivers)),
+              s = [node_size_norm_fun(receiver_count[x]) for x in receivers], alpha = node_alpha,
+              facecolor = ssc, edgecolor = 'none')
+    ## label sender
+    for r in receivers:
+        txt = main.text(3, receiver_loc[receivers.index(r)], r, fontsize = node_label_size, ha = 'center', zorder = 2)
+        if text_outline:
+            txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+
+    my_cmap = plt.cm.get_cmap(line_cmap)
+
+    ## line color scale
+    if line_cmap_vmin is None:
+        line_cmap_vmin = np.min(ptmp[line_color_col])
+
+    if line_cmap_vmax is None:
+        line_cmap_vmax = np.max(ptmp[line_color_col])
+                
+    if line_cmap_center is None:
+        # print(line_cmap_center)
+        line_cmap_center = np.mean([line_cmap_vmin, line_cmap_vmax])
+    
+    # print(line_cmap_vmin, line_cmap_center, line_cmap_vmax)
+    
+    if not line_cmap_vmin < line_cmap_center < line_cmap_vmax:
+        info('color scale resorted')
+        line_cmap_vmin, line_cmap_center, line_cmap_vmax = sorted([line_cmap_vmin, line_cmap_center, line_cmap_vmax])
+        if not line_cmap_vmin < line_cmap_center < line_cmap_vmax:
+            info('To default color scale')
+            line_cmap_vmin, line_cmap_center, line_cmap_vmax = -1.5, 0, 1.5
+
+    norm = matplotlib.colors.TwoSlopeNorm(vmin = line_cmap_vmin,
+                                         vmax = line_cmap_vmax,
+                                         vcenter = line_cmap_center)
+
+    ## draw lines 
+    n = 0
+    for i,line in focus_plot.iterrows(): 
+        m = metabolites_inti+metabolites.index(line['Metabolite_Name'])
+        t = sensors_inti+sensors.index(line['Sensor'])
+        S = sender_loc[senders.index(line['Sender'])]
+        R = receiver_loc[receivers.index(line['Receiver'])]
+        logFC = line[line_color_col]
+        ## 
+        linecolor = my_cmap(norm(logFC))
+        ## between sender and metabolite
+        main.plot([0, 1],[S, m], color = linecolor, zorder = 0, linewidth = linewidth, alpha = .2)
+        ## between sender and metabolite
+        main.plot([1, 2],[m, t], color = linecolor, zorder = 0, linewidth = linewidth, alpha = .2)
+        ## between sender and metabolite
+        main.plot([2, 3],[t, R], color = linecolor, zorder = 0, linewidth = linewidth, alpha = .2)
+        n += 1
+
+    ## label category
+    main.text(0, -2, 'Sender', weight = 'bold', ha = 'center')
+    main.text(1, -2, 'Metabolite', weight = 'bold', ha = 'center')
+    main.text(2, -2, 'Sensor', weight = 'bold', ha = 'center')
+    main.text(3, -2, 'Receiver', weight = 'bold', ha = 'center')
+
+    ## add direction legend
+    main.plot([0.4, 0.6], [-1.9, -1.9], color = 'lightgrey', linestyle = '-')
+    main.plot([0.6], [-1.9], color = 'lightgrey', marker = '>')
+    main.plot([1.4, 1.6], [-1.9, -1.9], color = 'lightgrey', linestyle = '-')
+    main.plot([1.6], [-1.9], color = 'lightgrey', marker = '>')
+    main.plot([2.4, 2.6], [-1.9, -1.9], color = 'lightgrey', linestyle = '-')
+    main.plot([2.6], [-1.9], color = 'lightgrey', marker = '>')
+
+    sm = matplotlib.cm.ScalarMappable(cmap=my_cmap, norm = norm)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax = bottom_left,
+                        shrink = .9,
+                        location = None)
+    cbar.set_label(label=line_color_col, fontsize = 10)
+
+
+    for label in dot_ann:
+        bottom_mid.scatter([], [], 
+                          color = 'black',
+                          facecolors='none',
+                          s = node_size_norm_fun(label),
+                         label = int(label))
+    bottom_mid.legend(title = '# of Connection', 
+                     loc='center',
+                     frameon = False)
+
+    # plt.tight_layout()
+    pdf.savefig(fig) if pdf else None
+    if show_plot:
+        plt.show()
+    plt.close()
+    if return_fig:
+        return(fig)
+
 
 def _FlowPlot_(comm_res, 
                 pval_method='permutation_test_fdr',
@@ -519,14 +876,14 @@ def _FlowPlot_(comm_res,
 
     ## line color scale
     if not line_cmap_vmin:
-        line_cmap_vmin = np.percentile(ptmp[line_color_col], 25)
+        line_cmap_vmin = np.min(ptmp[line_color_col])
     if not line_cmap_vmax:
-        line_cmap_vmax = np.percentile(ptmp[line_color_col], 75)
+        line_cmap_vmax = np.max(ptmp[line_color_col])
         
     if line_cmap_vmin>=line_cmap_vmax:
         line_cmap_vmin = line_cmap_vmax - abs(line_cmap_vmax-line_cmap_vmin)
         
-    norm = matplotlib.colors.Normalize(vmin = line_cmap_vmin if line_cmap_vmin else ptmp[line_color_col].min(), vmax = line_cmap_vmax if line_cmap_vmax else ptmp[line_color_col].max())
+    norm = matplotlib.colors.Normalize(vmin = line_cmap_vmin, vmax = line_cmap_vmax)
     # linecolor = np.array(list(map(norm, ptmp['-log10(pvalue)'])))
 
     ## draw lines 
@@ -1252,7 +1609,7 @@ def _count_stacked_bar_(tdf, figsize, title='', legend_loc='upper right',
         return(fig)
 
 def _count_bar_(tdf, figsize, title='', color='pink',
-                ylabel = 'Number of Metabolite-Sensor Communication', 
+                ylabel = 'Number of mCCC event', 
                 pdf=None, show_plot = False, return_fig = False):
     fig, ax = plt.subplots(figsize = figsize)
     xtick = list(np.arange(0, len(tdf) * 2, 2))
@@ -1401,7 +1758,7 @@ def _eventnum_bar_(commu_res,
         ax.tick_params(axis = 'y', which = 'major',
                        rotation = 0, size = 10)
         ax.set_xlabel('')
-        ax.set_ylabel('Number of Metabolite-Sensor Communication', size = 12)
+        ax.set_ylabel('Number of mCCC event', size = 12)
         # ax.set_title('Event number of cell group as sender or receiver',
         #             pad = 10, fontweight = 'bold')
         sns.despine(trim = True)
@@ -1432,7 +1789,7 @@ def _eventnum_bar_(commu_res,
             Figsize = figsize
         color = 'pink'
         fig = _count_bar_(tdf=tmp_n, figsize=Figsize,
-                    title='Communication Number of Metabolite-Sensor', 
+                    title='Number of mCCC event', 
                     ylabel = 'Number of Sender-Receiver Pairs',
                     color=color, pdf=pdf, show_plot = show_plot)        
         if return_fig:
@@ -1459,7 +1816,7 @@ def _eventnum_bar_(commu_res,
             fig = _count_stacked_bar_(tdf=tdf, figsize=Figsize, 
                                     title='Communication Number of Metabolite in Sender', 
                                     legend_loc='upper right',
-                                    ylabel = 'Number of Communications',
+                                    ylabel = 'Number of mCCC event',
                                     colorcmap = colorcmap, pdf = pdf, 
                                     show_plot = show_plot)
         else:
@@ -1475,7 +1832,7 @@ def _eventnum_bar_(commu_res,
                 Figsize = figsize
             fig = _count_bar_(tdf=met_n, figsize=Figsize, 
                             title='Communication Number of Metabolite in Sender',
-                            ylabel = 'Number of Communications',
+                            ylabel = 'Number of mCCC event',
                             color=color, pdf=None, show_plot = False)
         if return_fig:
             return(fig)
@@ -1500,7 +1857,7 @@ def _eventnum_bar_(commu_res,
             fig = _count_stacked_bar_(tdf=tdf, figsize=Figsize, 
                                     title='Communication Number of Sensor in Receiver', 
                                     legend_loc='upper right',
-                                    ylabel = 'Number of Communications',
+                                    ylabel = 'Number of mCCC event',
                                     colorcmap = colorcmap, pdf = pdf, 
                                     show_plot = show_plot)
         else:
@@ -1516,7 +1873,7 @@ def _eventnum_bar_(commu_res,
                 Figsize = figsize
             fig = _count_bar_(tdf=sensor_n, figsize=Figsize, 
                             title='Communication Number of Sensor in Receiver',
-                            ylabel = 'Number of Communications',
+                            ylabel = 'Number of mCCC event',
                             color=color, pdf=None, show_plot = False)
     
         if return_fig:

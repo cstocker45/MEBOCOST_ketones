@@ -1,5 +1,4 @@
-"""lisa: a bioinformatics software
-epigenome analysis to rank TFs from gene set
+"""MEBOCOST: a python-based package to infer metabolite-mediated cell-cell communications in scRNA-seq data.
 """
 import os
 import setuptools
@@ -35,19 +34,17 @@ def _make_config(conf_path, workdir=os.getcwd()):
 ## setup
 def main():
   setuptools.setup(name="mebocost", 
-                  version="1.0.4",
-                  description="a python-based method to predict metabolite mediated cell-cell communication",
+                  version="1.2.0",
+                  description="a python-based method to infer metabolite mediated cell-cell communication",
                   author='Rongbin Zheng, Kaifu Chen',
                   author_email='Rongbin.Zheng@childrens.harvard.edu',
-                  url='https://openwetware.org/wiki/Chenlab',
-                  # scripts=glob('mebocost/*'),
+                  url='https://kaifuchenlab.github.io/',
                   zip_safe=True,
                   package_dir={"": "src"},
                   packages=setuptools.find_packages(where="src"),
                   classifiers=[
                       'Environment::Console',
                       'Operating System:: POSIX',
-                      "Programming Language :: Python :: 3.12",
                       "Topic :: Scientific/Engineering :: Bio-Informatics"],
                   keywords='Metabolism',
                   license='OTHER'

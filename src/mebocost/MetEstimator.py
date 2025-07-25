@@ -3,7 +3,7 @@
 # ================================
 # @auther: Rongbin Zheng
 # @email: Rongbin.Zheng@childrens.harvard.edu
-# @date: May 2024
+# @date: May 2022
 # ================================
 
 import os,sys
@@ -19,10 +19,11 @@ from scipy import sparse
 
 
 """
-aggregate metabolite enzyme level from single cell, three ways can be used:
+estimate metabolite level from single cell, three ways can be used:
 1) scFEA, a published software, analyzed cell-wise flux and metabolite balance
 2) Compass, a published software, predicted cell-wise reaction flux, uptake, and secretion
-3) estimate aggregate metabolite enzyme level using expression of enzymes related to metabolic reactions
+3) estimate relative metabolite level using expression of enzymes related to metabolic reactions
+for flux result, we can impute metabolite level by summing the positive reaction and substracting the negative reaction
 """
 
 def info(string):
@@ -39,7 +40,7 @@ def info(string):
 ## scFEA-flux
 def _scFEA_flux_est_(scFEA_pred, scFEA_info, hmdb_info):
     """
-    This function can summarize metabolite relative flux taking scFEA flux rate result as input
+    This function can summarize metabolite relative abundance taking scFEA flux rate result as input
 
     Params
     ------
@@ -480,12 +481,74 @@ def _met_est_input_sparse_(exp_mat, indexer, columns, mIdList, met_gene, method)
             if not gene_neg_loc:
                 if method == 'mean':
                     m_from_enzyme = exp_mat[gene_pos_loc].mean(axis = 0)
+                elif method == 'gmean':
+                    dense_matrix = exp_mat[gene_pos_loc].toarray()
+                    m_from_enzyme = np.array([np.prod(dense_matrix, axis=0) ** (1.0 / dense_matrix.shape[0])])
                 else:
                     raise KeyError('method error')
             else:
                 if method == 'mean':
                     pos = exp_mat[gene_pos_loc].mean(axis = 0)
                     neg = exp_mat[gene_neg_loc].mean(axis = 0)
+                elif method == 'gmean':
+                    pos_matrix = exp_mat[gene_pos_loc].toarray()
+                    pos = np.array([np.prod(pos_matrix, axis=0) ** (1.0 / pos_matrix.shape[0])])
+                    neg_matrix = exp_mat[gene_neg_loc].toarray()
+                    neg = np.array([np.prod(neg_matrix, axis=0) ** (1.0 / neg_matrix.shape[0])])
+                else:
+                    raise KeyError('method error')
+                m_from_enzyme = pos - neg
+            met_from_gene = np.concatenate((met_from_gene, m_from_enzyme), axis = 0)
+
+    met_from_gene = sparse.csc_matrix(met_from_gene)
+    met_indexer = with_exp_gene_m
+    met_columns = columns.copy()
+    return(met_from_gene, met_indexer, met_columns)
+
+
+def _react_agg_enzyme_(exp_mat, react, method1):
+    genes = react['gene_name'].tolist()
+    gene_loc = [i for i, g in enumerate(indexer) if g in genes]
+    if method1 == 'mean':
+        agg_exp = exp_mat[gene_loc].mean(axis = 0)
+    elif method1 == 'gmean':
+        dense_matrix = exp_mat[gene_loc].toarray()
+        agg_exp = np.array([np.prod(dense_matrix, axis=0) ** (1.0 / dense_matrix.shape[0])])
+    else:
+        raise KeyError('method1 error')
+    return(agg_exp)
+
+def _met_est_input_sparse_by_reaction_(exp_mat, indexer, columns, mIdList, met_gene, method1='gmean', method2 = 'mean'):
+    """
+    expression matrix is a data frame
+    """
+    met_from_gene = np.empty(shape=(0,len(columns)))
+    with_exp_gene_m = [] ## only met-enzyme gene in the matrix can be estimated
+    reaction_exp = met_gene.groupby(['HMDB_ID', 'reaction', 'direction']).apply(lambda react: _react_agg_enzyme_(exp_mat, react, method1 = method1))
+    for mId in mIdList:
+        ## genes for the reaction of producing the metabolite
+        gene_pos = reaction_exp[(reaction_exp['HMDB_ID'] == mId) & (reaction_exp['direction'] == 'product')]
+        ## genes for the reaction of taking the metabolite as substrate
+        gene_neg = met_gene[(met_gene['HMDB_ID'] == mId) & (met_gene['direction'] == 'substrate')]
+        ## estimate by aggerating gene_pos and gene_neg
+        ## only estimate when there are genes of positive reactons
+        if gene_pos.shape[0] != 0:
+            with_exp_gene_m.append(mId)
+            ## if neg genes, do subraction from pos genes
+            if gene_neg.shape[0] == 0:
+                if method2 == 'mean':
+                    m_from_enzyme = np.array(gene_pos['react_value']).mean(axis = 0)
+                elif method2 == 'gmean':
+                    m_from_enzyme = np.prod(np.array(gene_pos['react_value']), axis = 0) ** (1 / gene_pos.shape[0])
+                else:
+                    raise KeyError('method error')
+            else:
+                if method2 == 'mean':
+                    pos = np.array(gene_pos['react_value']).mean(axis = 0)
+                    neg = np.array(gene_neg['react_value']).mean(axis = 0)
+                elif method2 == 'gmean':
+                    pos = np.prod(np.array(gene_pos['react_value']), axis = 0) ** (1 / gene_pos.shape[0])
+                    neg = np.prod(np.array(gene_neg['react_value']), axis = 0) ** (1 / gene_pos.shape[0])
                 else:
                     raise KeyError('method error')
                 m_from_enzyme = pos - neg
@@ -549,7 +612,9 @@ def _met_from_enzyme_est_(exp_mat, indexer, columns, mIdList=[], met_gene=pd.Dat
     met_from_gene, met_indexer, met_columns = _met_est_input_sparse_(exp_mat = exp_mat, indexer = indexer,
                                               columns = columns, mIdList = mIdList, 
                                               met_gene = met_gene, method = method)
-
+    # met_from_gene, met_indexer, met_columns = _met_est_input_sparse_by_reaction_(exp_mat = exp_mat, indexer = indexer,
+    #                                           columns = columns, mIdList = mIdList, 
+    #                                           met_gene = met_gene, method1 = 'gmean', method2 = 'mean')
     return(met_from_gene, met_indexer, met_columns)
 
 

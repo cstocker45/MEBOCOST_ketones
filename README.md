@@ -1,8 +1,10 @@
 <img src="./images/mebocost_logo.png" width="200" height="180" style="margin-left: auto; margin-right: auto;display: block;"/></img>
 
-## Join our email group for conveninent discussions and receive timely updates: https://forms.cloud.microsoft/r/TK7TuEU4TU 
+## V1.2.0 released for Multiple Samples in One-Run and Differential Analysis.
 
-## Welcome to use MEBOCOST: <I>Me</I>ta<I>bo</I>lic Cell-Cell <I>Co</I>mmunication Modeling by <I>S</I>ingle Cell <I>T</I>ranscriptome
+### Join our email group for conveninent discussions and receive timely updates via <a href='https://forms.cloud.microsoft/r/TK7TuEU4TU' target='_blank'>MicroSoft Form</a>  
+
+### Welcome to use MEBOCOST: <I>Me</I>ta<I>bo</I>lic Cell-Cell <I>Co</I>mmunication Modeling by <I>S</I>ingle Cell <I>T</I>ranscriptome
 
 ### Our manuscript has been online at <a href='https://doi.org/10.1093/nar/gkaf569' target='_blank'>Nucleic Acids Research </a>
 
@@ -29,27 +31,38 @@ workflow for predicting metabolite mediated cell-cell communication (mCCC) takin
 
 <p>
 
-We keep updating MEBOCOST!!!
+Changelog for v1.2.0, released 07-2025
 
 </p>
 
-<li>
+<li> Flux Integration Flexibility</li>
 
-Changelog for v1.0.4
+In addition to the default integration function for COMPASS flux output, added support for integrating flux results provided by users from any external tools using _ConstrainFluxFromAnyTool_ function
 
-</li>
+<li> Refined Output Table</li>
+The output table includes only statistically significant mCCC events based on enzyme-sensor coexpression analysis, while the full original results are saved under the original_result slot. A new column indicates whether flux activity passed the defined threshold, rather than reporting only those events with qualifying flux rates. This design retains potentially interesting mCCC events that are significant based solely on enzyme–sensor coexpression.
 
--   Upgrade to up-to-date python version (3.12)
--   Integrate COMPASS software to constrain metabolite efflux and influx in mCCC analysis
--   Allow users to examine the relationship between communication score and blood metabolite concentration, if the blood metabolite data is available
--   Fix bugs for plotting, including remove_unrelevant parameter in network plot, subfigure arrangement in the flow plot, and dendrogram ordering in the dot plot.
--   Change lines to curves in the network plot, now it is easier to distinguish sending and receiving signals.
--   By default, only output significant mCCC events, rather than complete mCCC table (but still be available in original_table item)
--   Provide options to set the range of dot size and line width in all plots. This is useful when generating plots for different samples to compare.
--   Provide options to set orders for x and y axis, or rows and columns, in plots.
--   Add function to automatically check the format of expression matrix
--   deprecated pathway analysis as it will be moved to another module
+<li> Batch Analysis Support </li>
+Enabled mCCC analysis for multiple samples in a single run.
 
+<li> Differential mCCC Analysis Options </li>
+Added support for differential analysis using: (1) A single object containing multiple samples. (2) Multiple separate result objects combined for comparative analysis
+
+<li> New Plotting Tools </li>
+Introduced new plotting functions tailored for differential mCCC results.
+
+<li> Expanded Metabolite-Sensor Pairs </li>
+Increase the number to 782 metabolite-sensor pairs. More sensor types are included, such as cell surface channel and cell surface enzymes.  
+
+<li> Updated parameters in some functions: </li>
+
+<p>1. create_obj: changed group_col parameter to a string representing a column name of meta table, no longer accepts a list. </p>
+
+<p>2. create_obj: added condition_col parameter to indicate an annotation column in the meta table to group cells into conditions. The mCCC analysis will perform within each conditions</p>
+
+<p>3. eventnum_bar: added xorder parameters to accept a list of cell types or corresponding labels to reorder x axis labels.</p>
+
+<p>4. All plot functions included condition paramters to visualize results in a specified condition. </p>
 <hr>
 
 ### Installation
@@ -94,9 +107,15 @@ python -m pip install .
 
 ### Tutorial
 
-<li>
 
-<a href='./Demo_Communication_Prediction.ipynb' target='_blank'>Prediction of cell-cell metabolic communication by scRNA-seq data</a>
+<a href='./Demo_one_sample_mCCC_analysis.ipynb' target='_blank'> The mCCC analysis by one scRNA-seq data, including running and visualization. </a>
+
+    
+<a href='./Demo_Multisample_mCCC_analysis.ipynb' target='_blank'> The mCCC analysis by scRNA-seq from two or multiple conditions, including Differential Analysis.</a>
+
+<p> 1. Analyze multiple samples by a single run and perform differental analysis.</p>
+
+<p> 2. Run two scRNA-seq samples separately but combined two samples for differential mCCC analysis. </p>
 
 </li>
 
