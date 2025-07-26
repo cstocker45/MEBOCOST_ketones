@@ -867,7 +867,7 @@ class create_obj:
         """
         met_name is a list of metabolite names to match with HMDB standard names
         """
-        met_ann = mebo_obj.met_ann[['metabolite', 'synonyms_name']]
+        met_ann = self.met_ann[['metabolite', 'synonyms_name']]
         met_syn_dict = {}
         ## build a dict key is alias and value is standard name
         for mn, sn in met_ann.dropna().values.tolist():
@@ -904,8 +904,8 @@ class create_obj:
         info('Match metabolites')
         influx_met = influx_mat.index.tolist()
         efflux_met = efflux_mat.index.tolist()
-        influx_met_match = _matchMetName_(met_name_list = influx_met)
-        efflux_met_match = _matchMetName_(met_name_list = efflux_met)
+        influx_met_match = self._matchMetName_(met_name_list = influx_met)
+        efflux_met_match = self._matchMetName_(met_name_list = efflux_met)
         if len(influx_met_match) == 0:
             raise KeyError('Error: No metabolite in influx matrix can match with commu_res')
         if len(efflux_met_match) == 0:
