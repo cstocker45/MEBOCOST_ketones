@@ -941,19 +941,27 @@ class create_obj:
         
         ## base_efflux_influx_cut
         tmp_na = comm_res[pd.isna(comm_res[x1]) | pd.isna(comm_res[x2])] # some metabolite not in flux result, retain
+        ## non-receptor sensor, as long as it not simply as receptor
         tmp1 = comm_res.query('Annotation != "Receptor"').copy()
+        ## receptor sensor, when it is only as receptor
         tmp2 = comm_res.query('Annotation == "Receptor"').copy()
-        tmp1 = tmp1[(tmp1[x1]>efflux_cut) & (tmp1[x2]>influx_cut)] ## non-receptor sensors, consider influx and efflux
-        tmp2 = tmp2[(tmp2[x1]>efflux_cut)] ## receptor sensors, only consider efflux
-        indexs = tmp_na.index.tolist()+tmp1.index.tolist()+tmp2.index.tolist()
+        ## apply filter
+        tmp1_new = tmp1[(tmp1[x1]>efflux_cut) & (tmp1[x2]>influx_cut)] ## non-receptor sensors, consider influx and efflux
+        tmp2_new = tmp2[(tmp2[x1]>efflux_cut)] ## receptor sensors, only consider efflux
+        indexs = tmp_na.index.tolist()+tmp1_new.index.tolist()+tmp2_new.index.tolist()
+        #tmp1 = tmp1[(tmp1[x1]>efflux_cut) & (tmp1[x2]>influx_cut)] ## non-receptor sensors, consider influx and efflux
+        #tmp2 = tmp2[(tmp2[x1]>efflux_cut)] ## receptor sensors, only consider efflux
+        #indexs = tmp_na.index.tolist()+tmp1.index.tolist()+tmp2.index.tolist()
         tmp_other = comm_res[~comm_res.index.isin(indexs)] ## other mCCC: significant coexpression but inferred flux does not pass the cutoff
         ## add labels for Flux_PASS
         tmp_na['Flux_PASS'] = 'N/A'
-        tmp1['Flux_PASS'] = 'PASS'
-        tmp2['Flux_PASS'] = 'PASS'
+        #tmp1['Flux_PASS'] = 'PASS'
+        #tmp2['Flux_PASS'] = 'PASS'
+        tmp1_new['Flux_PASS'] = 'PASS'
+        tmp2_new['Flux_PASS'] = 'PASS'
         tmp_other['Flux_PASS'] = 'UNPASS'
         ## re-concat result
-        update_commu_res = pd.concat([tmp1, tmp2, tmp_na, tmp_other])
+        update_commu_res = pd.concat([tmp1_new, tmp2_new, tmp_na, tmp_other])
         if inplace:
             self.efflux_mat = efflux_mat
             self.influx_mat = influx_mat
@@ -972,6 +980,7 @@ class create_obj:
         inplace: True for updating the commu_res in the object, False for return the updated communication table without changing the mebo_obj
         """
         comm_res = self.commu_res.sort_values(['Sender', 'Receiver', 'Metabolite', 'Sensor'])
+        comm_res.index = range(comm_res.shape[0])
         ## compass
         efflux_mat, influx_mat = FBA._get_compass_flux_(compass_folder=compass_folder, 
                                            compass_met_ann_path=_read_config(self.config_path)['common']['compass_met_ann_path'], 
@@ -994,19 +1003,27 @@ class create_obj:
         print('influx_cut:', influx_cut)
         ## base_efflux_influx_cut
         tmp_na = comm_res[pd.isna(comm_res[x1]) | pd.isna(comm_res[x2])] # some metabolite not in flux result, retain
+        ## non-receptor sensor, as long as it not simply as receptor
         tmp1 = comm_res.query('Annotation != "Receptor"').copy()
+        ## receptor sensor, when it is only as receptor
         tmp2 = comm_res.query('Annotation == "Receptor"').copy()
-        tmp1 = tmp1[(tmp1[x1]>efflux_cut) & (tmp1[x2]>influx_cut)] ## non-receptor sensors, consider influx and efflux
-        tmp2 = tmp2[(tmp2[x1]>efflux_cut)] ## receptor sensors, only consider efflux
-        indexs = tmp_na.index.tolist()+tmp1.index.tolist()+tmp2.index.tolist()
+        ## apply filter
+        tmp1_new = tmp1[(tmp1[x1]>efflux_cut) & (tmp1[x2]>influx_cut)] ## non-receptor sensors, consider influx and efflux
+        tmp2_new = tmp2[(tmp2[x1]>efflux_cut)] ## receptor sensors, only consider efflux
+        indexs = tmp_na.index.tolist()+tmp1_new.index.tolist()+tmp2_new.index.tolist()
+        #tmp1 = tmp1[(tmp1[x1]>efflux_cut) & (tmp1[x2]>influx_cut)] ## non-receptor sensors, consider influx and efflux
+        #tmp2 = tmp2[(tmp2[x1]>efflux_cut)] ## receptor sensors, only consider efflux
+        #indexs = tmp_na.index.tolist()+tmp1.index.tolist()+tmp2.index.tolist()
         tmp_other = comm_res[~comm_res.index.isin(indexs)] ## other mCCC: significant coexpression but inferred flux does not pass the cutoff
         ## add labels for Flux_PASS
         tmp_na['Flux_PASS'] = 'N/A'
-        tmp1['Flux_PASS'] = 'PASS'
-        tmp2['Flux_PASS'] = 'PASS'
+        #tmp1['Flux_PASS'] = 'PASS'
+        #tmp2['Flux_PASS'] = 'PASS'
+        tmp1_new['Flux_PASS'] = 'PASS'
+        tmp2_new['Flux_PASS'] = 'PASS'
         tmp_other['Flux_PASS'] = 'UNPASS'
         ## re-concat result
-        update_commu_res = pd.concat([tmp1, tmp2, tmp_na, tmp_other])
+        update_commu_res = pd.concat([tmp1_new, tmp2_new, tmp_na, tmp_other])
         if inplace:
             self.efflux_mat = efflux_mat
             self.influx_mat = influx_mat
