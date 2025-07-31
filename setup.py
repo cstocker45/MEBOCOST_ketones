@@ -34,7 +34,7 @@ def _make_config(conf_path, workdir=os.getcwd()):
 ## setup
 def main():
   setuptools.setup(name="mebocost", 
-                  version="1.2.0",
+                  version="1.2.1",
                   description="a python-based method to infer metabolite mediated cell-cell communication",
                   author='Rongbin Zheng, Kaifu Chen',
                   author_email='Rongbin.Zheng@childrens.harvard.edu',
