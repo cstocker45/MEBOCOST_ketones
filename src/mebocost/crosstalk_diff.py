@@ -24,6 +24,7 @@ from functools import partial
 
 """
 main functions of differential cross talk calculator
+v1.2.2: fix the bug for differential analysis using log2FC
 
 """
 
@@ -37,29 +38,35 @@ def info(string):
     current_time = today + ' ' + now
     print("[{}]: {}".format(current_time, string))
 
-def _testing_(real_score, bg_values, method = 'ztest'):
+def _testing_(real_score, bg_values, method = 'ztest', statv = 'Log2FC'):
     """
     run hypothesis testing
     real_score: the observed value
     bg_value: a array-like or list of background value
     """
     stat, pval = 0, 1
+    if statv == 'Log2FC':
+        sep = 0
+    else:
+        sep = 1
+        
     if method == 'ztest':
         stat, pval = sm.stats.ztest(bg_values,
                                 value = real_score, 
-                                alternative = "two-sided")
+                                alternative = "smaller" if real_score > sep else "larger")
     elif method == 'ttest':
         stat, pval, df = sm.stats.ttest_ind(x1 = bg_values,
                                 x2 = [real_score], 
-                                alternative = "two-sided")
+                                alternative = "smaller" if real_score > sep else "larger")
     elif method == 'ranksum_test':
-        stat, pval = scipy.stats.ranksums(x = bg_values, y = [real_score], alternative = "two-sided")
+        stat, pval = scipy.stats.ranksums(x = bg_values, y = [real_score], 
+                                          alternative = "less" if real_score > sep else "greater")
     # elif method == 'sign_test':
     #     stat, pval = statsmodels.stats.descriptivestats.sign_test(bg_values, real_score)
     elif method == 'permutation_test':
         ### greater
         bg_larger = 0
-        if real_score > 1:
+        if real_score > sep:
             for i in bg_values:
                 if i > real_score:
                     bg_larger += 1
@@ -70,6 +77,7 @@ def _testing_(real_score, bg_values, method = 'ztest'):
         stat, pval = bg_larger, bg_larger / len(bg_values)
     else:
         print('+++ unknown testing')
+        
     return(stat, pval)
 
 def cummin( x):
@@ -209,7 +217,8 @@ def computeDiffcomm(comparison,
             df2 = bg[(bg['cg'] == x) & (bg['cond'] == cond2)][receiver_cg]
             df1.index = range(df1.shape[0])
             df2.index = range(df2.shape[0])
-            ttmp = (df1+amin).div((df2+amin))
+            # ttmp = (df1+amin).div((df2+amin))
+            ttmp = np.log2(df1+amin) - np.log2(df2+amin)
             ttmp['Sender_'] = x
             tmp = pd.concat([tmp, ttmp])
         bgfc_res[m+'~'+s] = tmp
@@ -222,15 +231,16 @@ def computeDiffcomm(comparison,
         func_input = []
         for i, line in ms_cellpair.iterrows():
             m, s, sender, receiver = line['Metabolite_Name'], line['Sensor'], line['Sender'], line['Receiver']
-            fc = line['FC']
-            bg_v = bgfc_res[m+'~'+s].query('Sender_ == @sender')[receiver]
+            fc = line['Log2FC']
+            bg_v = bgfc_res[m+'~'+s].query('Sender_ == @sender')[receiver].dropna()
             func_input.append((fc, bg_v))
 
         for method in methods:
             with multiprocessing.Pool(thread) as pool:
                 func = partial(
                     _testing_, 
-                    method = method
+                    method = method,
+                    statv = 'Log2FC'
                 )
                 results = pool.starmap(func, func_input)
     
@@ -239,11 +249,11 @@ def computeDiffcomm(comparison,
     else:
         fc_res = []
         for i, line in ms_cellpair.iterrows():
-            m, s, sender, receiver = line.tolist()[:4]
-            fc = line['FC']
-            bg_v = bgfc_res[m+'~'+s].query('Sender_ == @sender')[receiver]
+            m, s, sender, receiver = line['Metabolite_Name'], line['Sensor'], line['Sender'], line['Receiver']
+            fc = line['Log2FC']
+            bg_v = bgfc_res[m+'~'+s].query('Sender_ == @sender')[receiver].dropna()
             for method in methods:
-                stat, pval = _testing_(fc, bg_v, method = method)
+                stat, pval = _testing_(fc, bg_v, method = method, statv = 'Log2FC')
                 line[method+'_stat'] = stat
                 line[method+'_pval'] = pval
             fc_res.append(line)
