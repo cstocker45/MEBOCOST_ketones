@@ -37,6 +37,7 @@ workflow for predicting metabolite mediated cell-cell communication (mCCC) takin
 <p>For v1.2.1</p>
 <li>main updates: fix code bugs for flux constraint precedure.</li>
 
+
 <p>For v1.2.0</p>
 <li> Flux Integration Flexibility</li>
 
