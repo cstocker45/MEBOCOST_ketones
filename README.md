@@ -1,6 +1,6 @@
 <img src="./images/mebocost_logo.png" width="200" height="180" style="margin-left: auto; margin-right: auto;display: block;"/></img>
 
-## V1.2 released for Multiple Samples in One-Run and Differential Analysis.
+## V1.2 released for Multiple Samples in One-Run and Differential Analysis. Please note that the differential analysis module is new. We are actively monitoring its performance and addressing any issues.
 
 ### Join our email group for conveninent discussions and receive timely updates via <a href='https://forms.cloud.microsoft/r/TK7TuEU4TU' target='_blank'>MicroSoft Form</a>  
 
