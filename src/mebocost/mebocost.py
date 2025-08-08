@@ -45,7 +45,7 @@ def info(string):
     print("[{}]: {}".format(current_time, string))
 
 def __version__():
-    info('Version: 1.2.1')
+    info('Version: 1.2.2')
 
 def concat_obj(obj1, obj2, cond1='cond1', cond2='cond2'):
     """
