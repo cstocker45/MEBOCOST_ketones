@@ -1,6 +1,6 @@
 <img src="./images/mebocost_logo.png" width="200" height="180" style="margin-left: auto; margin-right: auto;display: block;"/></img>
 
-## V1.2.0 released for Multiple Samples in One-Run and Differential Analysis.
+## V1.2 released for Multiple Samples in One-Run and Differential Analysis.
 
 ### Join our email group for conveninent discussions and receive timely updates via <a href='https://forms.cloud.microsoft/r/TK7TuEU4TU' target='_blank'>MicroSoft Form</a>  
 
@@ -29,12 +29,15 @@ workflow for predicting metabolite mediated cell-cell communication (mCCC) takin
 
 ### Version control
 
-<p>
+<p>Changelog for v1.2, released 07-2025</p>
 
-Changelog for v1.2.0, released 07-2025
+<p>For v1.2.2</p>
+<li>Improved differential analysis in computing p values using permutated Log2FC instead of using FC values.</li>
 
-</p>
+<p>For v1.2.1</p>
+<li>main updates: fix code bugs for flux constraint precedure.</li>
 
+<p>For v1.2.0</p>
 <li> Flux Integration Flexibility</li>
 
 In addition to the default integration function for COMPASS flux output, added support for integrating flux results provided by users from any external tools using _ConstrainFluxFromAnyTool_ function
