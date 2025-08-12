@@ -165,16 +165,16 @@ def computeDiffcomm(comparison,
     ms_cellpair = ms_cellpair[ms_cellpair['Sender'].isin(cellgroups) & ms_cellpair['Receiver'].isin(cellgroups)]
     
     if commu_res.shape[0] > 0:
-        commu_res['Sender'] = commu_res['Sender'].str.replace(cond1+' ~ ', '').str.replace(cond2+' ~ ', '')
-        commu_res['Receiver'] = commu_res['Receiver'].str.replace(cond1+' ~ ', '').str.replace(cond2+' ~ ', '')
+        commu_res['Sender'] = [x1.replace(x2+' ~ ', '') for x1, x2 in commu_res[['Sender', 'Condition']].values.tolist()]
+        commu_res['Receiver'] = [x1.replace(x2+' ~ ', '') for x1, x2 in commu_res[['Receiver', 'Condition']].values.tolist()]
         sig_mccc = commu_res[['Metabolite_Name', 'Sensor', 'Sender', 'Receiver']].apply(lambda row: '~'.join(row.tolist()), axis = 1)
         uniq_mccc = ms_cellpair[['Metabolite_Name', 'Sensor', 'Sender', 'Receiver']].apply(lambda row: '~'.join(row.tolist()), axis = 1)
         ms_cellpair = ms_cellpair.loc[uniq_mccc.isin(sig_mccc),:]
     else:
         indices = (original_result['Commu_Score'] > 0) & (original_result['metabolite_prop_in_sender'] > prop_cut) & (original_result['sensor_prop_in_receiver'] > prop_cut)
         original_result = original_result.loc[indices,:]
-        original_result['Sender'] = original_result['Sender'].str.replace(cond1+' ~ ', '').str.replace(cond2+' ~ ', '')
-        original_result['Receiver'] = original_result['Receiver'].str.replace(cond1+' ~ ', '').str.replace(cond2+' ~ ', '')
+        original_result['Sender'] = [x1.replace(x2+' ~ ', '') for x1, x2 in original_result[['Sender', 'Condition']].values.tolist()]
+        original_result['Receiver'] = [x1.replace(x2+' ~ ', '') for x1, x2 in original_result[['Receiver', 'Condition']].values.tolist()]
         sig_mccc = original_result[['Metabolite_Name', 'Sensor', 'Sender', 'Receiver']].apply(lambda row: '~'.join(row.tolist()), axis = 1)
         uniq_mccc = ms_cellpair[['Metabolite_Name', 'Sensor', 'Sender', 'Receiver']].apply(lambda row: '~'.join(row.tolist()), axis = 1)
         ms_cellpair = ms_cellpair.loc[uniq_mccc.isin(sig_mccc),:]
