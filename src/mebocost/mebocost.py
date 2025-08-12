@@ -1276,9 +1276,9 @@ class create_obj:
                                          (mccc_df['Receiver'].isin(receiver_focus)) |
                                          (mccc_df['Metabolite_Name'].isin(metabolite_focus)) |
                                          (mccc_df['Sensor'].isin(sensor_focus))]
-        comp_res = [line.to_dict() for i, line in mccc_df.iterrows()]
+        #comp_res = [line.to_dict() for i, line in mccc_df.iterrows()]
     
-        return(comp_res)
+        return(mccc_df)
 
     def DiffSummaryPlot(self, comp_cond, 
                         pval_method='permutation_test_fdr',
@@ -1318,20 +1318,18 @@ class create_obj:
             number of top ranked sender, receiver, and metabolite with the highest number of differential mCCC events to be shown, default is 5.
         """
 
-        comp_df = self.diffcomm_res[comp_cond].copy()
+        comp_plot_df = self.diffcomm_res[comp_cond].copy()
         cond1, cond2 = comp_cond.split('_vs_') 
     
         ## update comp_df
         if metabolite_focus or sender_focus or receiver_focus or sensor_focus:
-            comp_df = self.filtermccc(and_or=and_or,
-                                    mccc_df=comp_df,
+            comp_plot_df = self.filtermccc(and_or=and_or,
+                                    mccc_df=comp_plot_df,
                                     metabolite_focus=metabolite_focus,
                                     sender_focus=sender_focus,
                                     receiver_focus=receiver_focus,
                                     sensor_focus=sensor_focus,
-                                    )
-        comp_plot_df = pd.DataFrame(comp_df)
-        
+                                    )        
         ## plot number of cell type and metabolite with diff mCCC events
         # --- Up-regulated events (Log2FC > 0) ---
         Log2FC_threshold = abs(Log2FC_threshold)
