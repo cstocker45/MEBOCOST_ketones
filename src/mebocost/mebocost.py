@@ -23,13 +23,29 @@ import configparser
 import tracemalloc
 import warnings
 import copy
-from matplotlib.backends.backend_pdf import PdfPages
+
 import importlib
 import mebocost.MetEstimator as ME
 import mebocost.crosstalk_calculator as CC
 import mebocost.crosstalk_plots as CP
 import mebocost.fba_handler as FBA
 import mebocost.crosstalk_diff as CD
+
+
+from matplotlib import pyplot as plt
+import seaborn as sns
+from matplotlib.backends.backend_pdf import PdfPages
+## disable warnings
+import warnings
+warnings.filterwarnings("ignore")
+
+
+plt.rcParams.update(plt.rcParamsDefault)
+rc={"axes.labelsize": 16, "xtick.labelsize": 12, "ytick.labelsize": 12,
+    "figure.titleweight":"bold", #"font.size":14,
+    "figure.figsize":(5.5,4.2), "font.weight":"regular", "legend.fontsize":10,
+    'axes.labelpad':8, 'figure.dpi':300}
+plt.rcParams.update(**rc)
 
 """
 linking input and out 
@@ -1290,6 +1306,8 @@ class create_obj:
                         receiver_focus = [],
                         and_or = 'and',
                         numtop_bar = 5, 
+                        save=None, 
+                        return_fig = False
                         ):
         """
         Summary plot to show top sender, receiver, and metabolite with the highest number of up or down differential mCCC events.
