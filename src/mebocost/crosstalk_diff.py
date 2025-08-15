@@ -212,13 +212,16 @@ def computeDiffcomm(comparison,
         bg['cond'] = cond
         bg['cg'] = cellgroup
         tmp = pd.DataFrame()
+        ## permutation was done on each m-s, so pseudo value on the base of m-s
+        bmin = abs(bg[receiver_cg].min().min())+ep
         for x in sender_cg:
             df1 = bg[(bg['cg'] == x) & (bg['cond'] == cond1)][receiver_cg]
             df2 = bg[(bg['cg'] == x) & (bg['cond'] == cond2)][receiver_cg]
             df1.index = range(df1.shape[0])
             df2.index = range(df2.shape[0])
             # ttmp = (df1+amin).div((df2+amin))
-            ttmp = np.log2(df1+amin) - np.log2(df2+amin)
+            # ttmp = np.log2(df1+amin) - np.log2(df2+amin)
+            ttmp = np.log2(df1+bmin) - np.log2(df2+bmin)
             ttmp['Sender_'] = x
             tmp = pd.concat([tmp, ttmp])
         bgfc_res[m+'~'+s] = tmp
