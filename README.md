@@ -32,6 +32,7 @@ workflow for predicting metabolite mediated cell-cell communication (mCCC) takin
 <p>Changelog for v1.2</p>
 
 <p>For v1.2.2</p>
+<li>(08-15-2025) Adjust pseudo value adding in logFC calculation to avoid potential errors.</li>
 <li>(08-12-2025) Fixed bugs for condition naming issue and differential mCCC plotting issues.</li>
 <li>(08-08-2025) Improved differential analysis in computing p values using permutated Log2FC instead of using FC values.</li>
 
