@@ -118,6 +118,9 @@ class InferComm:
                 intertype = set(a.upper().split('; ')) & set(st)
                 if len(intertype) > 0:
                     index.append(True)
+                else:
+                    index.append(False)
+
             met_sensor = met_sensor.loc[index,]
         ## else all sensor type will be used
         
